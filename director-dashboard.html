@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Director - UTP Psicología</title>
+  <link rel="stylesheet" href="estilos.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="sidebar director">
+  <h2><a href="login.html" class="logo-link">UTP Psicología</a></h2>
+  <p>Director</p>
+  <div class="menu director">
+    <button onclick="location.href='director-dashboard.html'">Dashboard</button>
+    <button onclick="location.href='director-gestion-psicologos.html'">Gestión Psicólogos</button>
+    <button onclick="location.href='director-ver-notas.html'">Ver Notas</button>
+    <button onclick="location.href='login.html'">Cerrar Sesión</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 class="director">Dashboard del Director</h1>
+    <p>Vista general de la Dirección de Orientación Psicológica</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2 class="director">Total Estudiantes Atendidos</h2>
+      <div class="stat-number" id="totalAtendidosGlobal">0</div>
+    </div>
+    <div class="card">
+      <h2 class="director">Citas Realizadas</h2>
+      <div class="stat-number" id="totalCitas">0</div>
+    </div>
+    <div class="card">
+      <h2 class="director">Psicólogos Activos</h2>
+      <div class="stat-number" id="totalPsicologos">0</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="director">Resumen General</h2>
+    <div class="info-box director">
+      Este panel muestra estadísticas globales de todos los psicólogos y pacientes.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="director">Atendidos por Facultad (Global)</h2>
+    <canvas id="chartFacultadGlobal" height="150"></canvas>
+  </div>
+
+  <div class="card">
+    <h2 class="director">Últimas Citas Registradas</h2>
+    <table>
+      <thead><tr><th>Paciente</th><th>Psicólogo</th><th>Fecha</th><th>Estado</th></tr></thead>
+      <tbody id="ultimasCitasGlobal"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  if (sessionStorage.getItem('usuarioTipo') !== 'director') window.location.href = 'login.html';
+
+  function cargarDashboardGlobal() {
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const psicologos = JSON.parse(localStorage.getItem('psicologos')) || [];
+
+    // Total atendidos (estudiantes únicos con al menos una cita atendida)
+    const atendidos = citas.filter(c => c.estado === 'Atendida');
+    const estudiantesUnicos = [...new Set(atendidos.map(c => c.estudianteCedula))];
+    document.getElementById('totalAtendidosGlobal').textContent = estudiantesUnicos.length;
+
+    // Total citas
+    document.getElementById('totalCitas').textContent = citas.length;
+
+    // Psicólogos activos (los que tienen al menos una cita)
+    const psicologosActivos = [...new Set(citas.map(c => c.psicologo))];
+    document.getElementById('totalPsicologos').textContent = psicologosActivos.length;
+
+    // Gráfica por facultad (global)
+    const facultades = {};
+    atendidos.forEach(c => {
+      const f = c.facultad || 'Sin facultad';
+      facultades[f] = (facultades[f] || 0) + 1;
+    });
+    const labels = Object.keys(facultades);
+    const data = Object.values(facultades);
+    const ctx = document.getElementById('chartFacultadGlobal').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Atendidos por facultad',
+          data: data,
+          backgroundColor: '#8d52fe',
+          borderColor: '#6f3df4',
+          borderWidth: 1
+        }]
+      },
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Últimas citas
+    const ultimas = citas.sort((a,b) => b.id - a.id).slice(0,5);
+    const tbody = document.getElementById('ultimasCitasGlobal');
+    tbody.innerHTML = '';
+    if (ultimas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4">No hay citas</td></tr>';
+    } else {
+      ultimas.forEach(c => {
+        tbody.innerHTML += `<tr><td>${c.estudianteNombre}</td><td>${c.psicologo}</td><td>${c.fecha}</td><td><span class="badge ${c.estado.toLowerCase()}">${c.estado}</span></td></tr>`;
+      });
+    }
+  }
+
+  cargarDashboardGlobal();
+</script>
+</body>
+</html>

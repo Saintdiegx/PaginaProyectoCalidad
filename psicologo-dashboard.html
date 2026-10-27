@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Psicólogo - UTP Psicología</title>
+  <link rel="stylesheet" href="estilos.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="sidebar psicologo">
+  <h2><a href="login.html" class="logo-link">UTP Psicología</a></h2>
+  <p>Psicólogo</p>
+  <div class="menu psicologo">
+    <button onclick="location.href='psicologo-dashboard.html'">Dashboard</button>
+    <button onclick="location.href='psicologo-citas.html'">Gestión de Citas</button>
+    <button onclick="location.href='psicologo-notas.html'">Notas Privadas</button>
+    <button onclick="location.href='login.html'">Cerrar Sesión</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 class="psicologo">Dashboard del Psicólogo</h1>
+    <p><strong id="nombrePsico"></strong></p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2 class="psicologo">Citas Pendientes</h2>
+      <div class="stat-number" id="pendientes">0</div>
+    </div>
+    <div class="card">
+      <h2 class="psicologo">Atendidos Hoy</h2>
+      <div class="stat-number" id="atendidosHoy">0</div>
+    </div>
+    <div class="card">
+      <h2 class="psicologo">Total Atendidos</h2>
+      <div class="stat-number" id="totalAtendidos">0</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="psicologo">Resumen Operativo</h2>
+    <div class="info-box psicologo">
+      Este panel muestra el resumen de tu actividad diaria. Las citas pendientes requieren tu atención.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="psicologo">Últimas Actividades</h2>
+    <table>
+      <thead><tr><th>Paciente</th><th>Fecha</th><th>Estado</th></tr></thead>
+      <tbody id="ultimasActividades"></tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-top:20px;">
+    <h2 class="psicologo">Atendidos por Facultad (todos tus pacientes)</h2>
+    <canvas id="chartFacultad" height="150"></canvas>
+  </div>
+</div>
+
+<script>
+  const psicologo = sessionStorage.getItem('psicologoNombre');
+  if (!psicologo) window.location.href = 'login.html';
+  document.getElementById('nombrePsico').textContent = 'Bienvenido, ' + psicologo;
+
+  function cargarDashboard() {
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const misCitas = citas.filter(c => c.psicologo === psicologo);
+
+    // Pendientes
+    const pendientes = misCitas.filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada' || c.estado === 'Reprogramada').length;
+    document.getElementById('pendientes').textContent = pendientes;
+
+    // Atendidos hoy
+    const hoy = new Date().toISOString().split('T')[0];
+    const atendidosHoy = misCitas.filter(c => c.fecha === hoy && c.estado === 'Atendida').length;
+    document.getElementById('atendidosHoy').textContent = atendidosHoy;
+
+    // Total atendidos
+    const totalAtendidos = misCitas.filter(c => c.estado === 'Atendida').length;
+    document.getElementById('totalAtendidos').textContent = totalAtendidos;
+
+    // Últimas actividades (últimas 5 citas atendidas o pendientes)
+    const ultimas = misCitas.sort((a,b) => b.id - a.id).slice(0,5);
+    const tbody = document.getElementById('ultimasActividades');
+    tbody.innerHTML = '';
+    if (ultimas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3">No hay actividades recientes</td></tr>';
+    } else {
+      ultimas.forEach(c => {
+        tbody.innerHTML += `<tr><td>${c.estudianteNombre}</td><td>${c.fecha}</td><td><span class="badge ${c.estado.toLowerCase()}">${c.estado}</span></td></tr>`;
+      });
+    }
+
+    // Gráfica por facultad (de todos sus atendidos)
+    const atendidos = misCitas.filter(c => c.estado === 'Atendida');
+    const facultades = {};
+    atendidos.forEach(c => {
+      const f = c.facultad || 'Sin facultad';
+      facultades[f] = (facultades[f] || 0) + 1;
+    });
+    const labels = Object.keys(facultades);
+    const data = Object.values(facultades);
+
+    const ctx = document.getElementById('chartFacultad').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Pacientes atendidos',
+          data: data,
+          backgroundColor: '#1976d2',
+          borderColor: '#0d47a1',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  cargarDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Citas - Psicólogo</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<div class="sidebar psicologo">
+  <h2><a href="login.html" class="logo-link">UTP Psicología</a></h2>
+  <p>Psicólogo</p>
+  <div class="menu psicologo">
+    <button onclick="location.href='psicologo-dashboard.html'">Dashboard</button>
+    <button onclick="location.href='psicologo-citas.html'">Gestión de Citas</button>
+    <button onclick="location.href='psicologo-notas.html'">Notas Privadas</button>
+    <button onclick="location.href='login.html'">Cerrar Sesión</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 class="psicologo">Gestión de Citas</h1>
+    <p>Administra las citas de tus pacientes</p>
+  </div>
+
+  <div class="card">
+    <h2 class="psicologo">Lista de Citas</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Paciente</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tablaCitasPsicologo"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2 class="psicologo">Reprogramar Cita</h2>
+    <p>Selecciona una cita de la lista y luego elige nueva fecha/hora disponible.</p>
+    <div class="grid">
+      <div>
+        <label>Nueva Fecha</label>
+        <select id="nuevaFecha" onchange="cargarNuevasHoras()">
+          <option value="">Seleccione</option>
+        </select>
+      </div>
+      <div>
+        <label>Nueva Hora</label>
+        <select id="nuevaHora">
+          <option value="">Seleccione fecha</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn secundario" onclick="reprogramarCita()">Proponer Reprogramación</button>
+    <p id="mensajeReprogramacion" style="margin-top:10px;"></p>
+  </div>
+
+  <div class="card">
+    <h2 class="psicologo">Calendario de Disponibilidad</h2>
+    <div class="grid">
+      <div><label>Día</label><input type="date" id="dispFecha"></div>
+      <div><label>Hora</label><input type="time" id="dispHora"></div>
+    </div>
+    <button class="btn" onclick="agregarDisponibilidad()">Agregar Disponibilidad</button>
+    <h3 style="margin-top:20px;">Disponibilidades actuales</h3>
+    <table>
+      <thead><tr><th>Fecha</th><th>Hora</th><th>Acción</th></tr></thead>
+      <tbody id="tablaDisponibilidad"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const psicologo = sessionStorage.getItem('psicologoNombre');
+  if (!psicologo) window.location.href = 'login.html';
+  let citaSeleccionadaId = null;
+
+  function cargarCitas() {
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const misCitas = citas.filter(c => c.psicologo === psicologo);
+    const tbody = document.getElementById('tablaCitasPsicologo');
+    tbody.innerHTML = '';
+    if (misCitas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5">No hay citas</td></tr>';
+    } else {
+      misCitas.forEach(c => {
+        const estadoClass = c.estado.toLowerCase();
+        tbody.innerHTML += `
+          <tr>
+            <td>${c.estudianteNombre}</td>
+            <td>${c.fecha}</td>
+            <td>${c.hora}</td>
+            <td><span class="badge ${estadoClass}">${c.estado}</span></td>
+            <td>
+              <button class="btn" onclick="seleccionarCita(${c.id})">Seleccionar</button>
+              ${c.estado === 'Pendiente' || c.estado === 'Confirmada' ? `<button class="btn" onclick="marcarAtendida(${c.id})">Atender</button>` : ''}
+              ${c.estado === 'Pendiente' ? `<button class="btn danger" onclick="cancelarCita(${c.id})">Cancelar</button>` : ''}
+            </td>
+          </tr>
+        `;
+      });
+    }
+    cargarDisponibilidad();
+    cargarFechasDisponibles();
+  }
+
+  function seleccionarCita(id) {
+    citaSeleccionadaId = id;
+    document.getElementById('mensajeReprogramacion').innerHTML = `Cita seleccionada (ID: ${id}). Elige nueva fecha/hora y presiona "Proponer Reprogramación".`;
+    // Cargar fechas disponibles para este psicólogo
+    cargarFechasDisponibles();
+  }
+
+  function cargarFechasDisponibles() {
+    const disponibilidades = JSON.parse(localStorage.getItem('disponibilidades')) || [];
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const fechas = [...new Set(disponibilidades.filter(d => d.psicologo === psicologo).map(d => d.dia))];
+    const selectFecha = document.getElementById('nuevaFecha');
+    selectFecha.innerHTML = '<option value="">Seleccione</option>';
+    fechas.forEach(f => {
+      // Verificar si hay horas libres en esa fecha
+      const horasDisponibles = disponibilidades.filter(d => d.psicologo === psicologo && d.dia === f);
+      const horasOcupadas = citas.filter(c => c.psicologo === psicologo && c.fecha === f && c.estado !== 'Cancelada').map(c => c.hora);
+      const libres = horasDisponibles.some(h => !horasOcupadas.includes(h.horario));
+      if (libres) {
+        selectFecha.innerHTML += `<option value="${f}">${f}</option>`;
+      }
+    });
+    if (fechas.length === 0) selectFecha.innerHTML = '<option value="">No hay fechas</option>';
+  }
+
+  function cargarNuevasHoras() {
+    const fecha = document.getElementById('nuevaFecha').value;
+    const selectHora = document.getElementById('nuevaHora');
+    selectHora.innerHTML = '<option value="">Seleccione</option>';
+    if (!fecha) return;
+    const disponibilidades = JSON.parse(localStorage.getItem('disponibilidades')) || [];
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const horasDisponibles = disponibilidades.filter(d => d.psicologo === psicologo && d.dia === fecha);
+    const horasOcupadas = citas.filter(c => c.psicologo === psicologo && c.fecha === fecha && c.estado !== 'Cancelada').map(c => c.hora);
+    horasDisponibles.forEach(h => {
+      if (!horasOcupadas.includes(h.horario)) {
+        selectHora.innerHTML += `<option value="${h.horario}">${h.horario}</option>`;
+      }
+    });
+    if (selectHora.options.length === 1) selectHora.innerHTML = '<option value="">No hay horas</option>';
+  }
+
+  function reprogramarCita() {
+    if (!citaSeleccionadaId) {
+      alert('Primero selecciona una cita de la lista');
+      return;
+    }
+    const nuevaFecha = document.getElementById('nuevaFecha').value;
+    const nuevaHora = document.getElementById('nuevaHora').value;
+    if (!nuevaFecha || !nuevaHora) {
+      alert('Selecciona nueva fecha y hora');
+      return;
+    }
+
+    // Verificar que la nueva fecha/hora esté disponible
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const ocupada = citas.some(c => c.psicologo === psicologo && c.fecha === nuevaFecha && c.hora === nuevaHora && c.estado !== 'Cancelada' && c.id !== citaSeleccionadaId);
+    if (ocupada) {
+      alert('Ese horario ya está ocupado');
+      return;
+    }
+
+    // Crear solicitud de reprogramación
+    let solicitudes = JSON.parse(localStorage.getItem('solicitudesReprogramacion')) || [];
+    solicitudes.push({
+      citaId: citaSeleccionadaId,
+      nuevaFecha: nuevaFecha,
+      nuevaHora: nuevaHora,
+      estado: 'Esperando'
+    });
+    localStorage.setItem('solicitudesReprogramacion', JSON.stringify(solicitudes));
+
+    // Cambiar estado de la cita a "Reprogramada"
+    const cita = citas.find(c => c.id === citaSeleccionadaId);
+    if (cita) cita.estado = 'Reprogramada';
+    localStorage.setItem('citas', JSON.stringify(citas));
+
+    document.getElementById('mensajeReprogramacion').innerHTML = 'Solicitud de reprogramación enviada. Esperando respuesta del estudiante.';
+    cargarCitas();
+  }
+
+  function marcarAtendida(id) {
+    if (!confirm('¿Marcar esta cita como atendida?')) return;
+    let citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const cita = citas.find(c => c.id === id);
+    if (cita) {
+      cita.estado = 'Atendida';
+      localStorage.setItem('citas', JSON.stringify(citas));
+      cargarCitas();
+    }
+  }
+
+  function cancelarCita(id) {
+    if (!confirm('¿Cancelar esta cita?')) return;
+    let citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const cita = citas.find(c => c.id === id);
+    if (cita) {
+      cita.estado = 'Cancelada';
+      localStorage.setItem('citas', JSON.stringify(citas));
+      cargarCitas();
+    }
+  }
+
+  // Disponibilidad
+  function cargarDisponibilidad() {
+    const disponibilidades = JSON.parse(localStorage.getItem('disponibilidades')) || [];
+    const misDisp = disponibilidades.filter(d => d.psicologo === psicologo);
+    const tbody = document.getElementById('tablaDisponibilidad');
+    tbody.innerHTML = '';
+    if (misDisp.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3">No hay disponibilidades</td></tr>';
+    } else {
+      misDisp.forEach(d => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${d.dia}</td>
+            <td>${d.horario}</td>
+            <td><button class="btn danger" onclick="eliminarDisponibilidad(${d.id})">Eliminar</button></td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  function agregarDisponibilidad() {
+    const fecha = document.getElementById('dispFecha').value;
+    const hora = document.getElementById('dispHora').value;
+    if (!fecha || !hora) {
+      alert('Complete fecha y hora');
+      return;
+    }
+    // Validar que sea de lunes a viernes (opcional)
+    const diaSemana = new Date(fecha + 'T00:00:00').getDay();
+    if (diaSemana === 0 || diaSemana === 6) {
+      alert('Solo se permiten días de semana (lunes a viernes)');
+      return;
+    }
+    let disponibilidades = JSON.parse(localStorage.getItem('disponibilidades')) || [];
+    const existe = disponibilidades.some(d => d.psicologo === psicologo && d.dia === fecha && d.horario === hora);
+    if (existe) {
+      alert('Esa disponibilidad ya existe');
+      return;
+    }
+    disponibilidades.push({
+      id: Date.now(),
+      psicologo: psicologo,
+      dia: fecha,
+      horario: hora
+    });
+    localStorage.setItem('disponibilidades', JSON.stringify(disponibilidades));
+    cargarDisponibilidad();
+    document.getElementById('dispFecha').value = '';
+    document.getElementById('dispHora').value = '';
+    cargarFechasDisponibles(); // actualizar fechas en reprogramación
+  }
+
+  function eliminarDisponibilidad(id) {
+    if (!confirm('¿Eliminar esta disponibilidad?')) return;
+    let disponibilidades = JSON.parse(localStorage.getItem('disponibilidades')) || [];
+    // Verificar si alguna cita (no cancelada) usa esta disponibilidad
+    const d = disponibilidades.find(d => d.id === id);
+    if (d) {
+      const citas = JSON.parse(localStorage.getItem('citas')) || [];
+      const usada = citas.some(c => c.psicologo === d.psicologo && c.fecha === d.dia && c.hora === d.horario && c.estado !== 'Cancelada');
+      if (usada) {
+        alert('No se puede eliminar porque hay una cita agendada en ese horario');
+        return;
+      }
+    }
+    disponibilidades = disponibilidades.filter(d => d.id !== id);
+    localStorage.setItem('disponibilidades', JSON.stringify(disponibilidades));
+    cargarDisponibilidad();
+    cargarFechasDisponibles();
+  }
+
+  // Inicializar
+  cargarCitas();
+</script>
+</body>
+</html>

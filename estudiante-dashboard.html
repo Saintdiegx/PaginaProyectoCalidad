@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estudiante - UTP Psicología</title>
+  <link rel="stylesheet" href="estilos.css">
+  <style>
+    /* Ajustes específicos */
+    .disponible { background: #e8f5e9; }
+    .ocupado { background: #ffebee; }
+  </style>
+</head>
+<body>
+
+<div class="sidebar estudiante">
+  <h2><a href="login.html" class="logo-link">UTP Psicología</a></h2>
+  <p>Estudiante</p>
+  <div class="menu estudiante">
+    <button onclick="location.href='estudiante-dashboard.html'">Mis Citas</button>
+    <button onclick="location.href='estudiante-solicitar.html'">Solicitar Cita</button>
+    <button onclick="location.href='login.html'">Cerrar Sesión</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 class="estudiante">Sistema de Automatización</h1>
+    <p>Dirección Nacional de Orientación Psicológica - UTP</p>
+    <p><strong>Bienvenido, <span id="nombreEstudiante"></span></strong></p>
+  </div>
+
+  <div class="card">
+    <h2 class="estudiante">Mis Citas</h2>
+    <div id="notificaciones" style="margin-bottom:15px;"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Psicólogo</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tablaCitasEstudiante"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const cedula = sessionStorage.getItem('estudianteCedula');
+  if (!cedula) window.location.href = 'login.html';
+  document.getElementById('nombreEstudiante').textContent = sessionStorage.getItem('estudianteNombre') || '';
+
+  function cargarCitas() {
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const misCitas = citas.filter(c => c.estudianteCedula === cedula);
+    const tbody = document.getElementById('tablaCitasEstudiante');
+    tbody.innerHTML = '';
+
+    if (misCitas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5">No tienes citas agendadas</td></tr>';
+    } else {
+      misCitas.forEach(c => {
+        let estadoClass = '';
+        switch (c.estado) {
+          case 'Pendiente': estadoClass = 'pendiente'; break;
+          case 'Confirmada': estadoClass = 'confirmada'; break;
+          case 'Atendida': estadoClass = 'atendida'; break;
+          case 'Cancelada': estadoClass = 'cancelada'; break;
+          case 'Reprogramada': estadoClass = 'reprogramada'; break;
+        }
+        // Verificar si tiene solicitud de reprogramación
+        const solicitudes = JSON.parse(localStorage.getItem('solicitudesReprogramacion')) || [];
+        const solicitud = solicitudes.find(s => s.citaId === c.id && s.estado === 'Esperando');
+        let accion = '';
+        if (solicitud) {
+          accion = `
+            <div style="display:flex; gap:8px; justify-content:center;">
+              <button class="btn" style="background:#2e7d32;" onclick="aceptarReprogramacion(${c.id})">Aceptar</button>
+              <button class="btn danger" onclick="rechazarReprogramacion(${c.id})">Rechazar</button>
+            </div>
+          `;
+        } else if (c.estado === 'Pendiente' || c.estado === 'Confirmada') {
+          accion = `<button class="btn danger" onclick="cancelarCita(${c.id})">Cancelar</button>`;
+        } else {
+          accion = '---';
+        }
+        tbody.innerHTML += `
+          <tr>
+            <td>${c.psicologo}</td>
+            <td>${c.fecha}</td>
+            <td>${c.hora}</td>
+            <td><span class="badge ${estadoClass}">${c.estado}</span></td>
+            <td>${accion}</td>
+          </tr>
+        `;
+      });
+    }
+    mostrarNotificaciones();
+  }
+
+  function mostrarNotificaciones() {
+    const solicitudes = JSON.parse(localStorage.getItem('solicitudesReprogramacion')) || [];
+    const misSolicitudes = solicitudes.filter(s => {
+      const cita = JSON.parse(localStorage.getItem('citas'))?.find(c => c.id === s.citaId);
+      return cita && cita.estudianteCedula === cedula && s.estado === 'Esperando';
+    });
+    const div = document.getElementById('notificaciones');
+    if (misSolicitudes.length > 0) {
+      div.innerHTML = `<div class="info-box estudiante" style="border-left-color: #f57f17;">
+        <strong>⚠️ Tienes ${misSolicitudes.length} solicitud(es) de reprogramación.</strong> Revisa tus citas.
+      </div>`;
+    } else {
+      div.innerHTML = '';
+    }
+  }
+
+  function cancelarCita(id) {
+    if (!confirm('¿Cancelar esta cita?')) return;
+    let citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const idx = citas.findIndex(c => c.id === id);
+    if (idx !== -1) {
+      citas[idx].estado = 'Cancelada';
+      localStorage.setItem('citas', JSON.stringify(citas));
+      cargarCitas();
+      alert('Cita cancelada');
+    }
+  }
+
+  function aceptarReprogramacion(citaId) {
+    if (!confirm('¿Aceptas la nueva fecha/hora propuesta?')) return;
+    let solicitudes = JSON.parse(localStorage.getItem('solicitudesReprogramacion')) || [];
+    const idx = solicitudes.findIndex(s => s.citaId === citaId && s.estado === 'Esperando');
+    if (idx === -1) return;
+    const solicitud = solicitudes[idx];
+    // Actualizar cita con nueva fecha/hora
+    let citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const citaIdx = citas.findIndex(c => c.id === citaId);
+    if (citaIdx !== -1) {
+      citas[citaIdx].fecha = solicitud.nuevaFecha;
+      citas[citaIdx].hora = solicitud.nuevaHora;
+      citas[citaIdx].estado = 'Confirmada';
+      localStorage.setItem('citas', JSON.stringify(citas));
+    }
+    // Eliminar solicitud
+    solicitudes.splice(idx, 1);
+    localStorage.setItem('solicitudesReprogramacion', JSON.stringify(solicitudes));
+    cargarCitas();
+    alert('Cita reprogramada exitosamente');
+  }
+
+  function rechazarReprogramacion(citaId) {
+    if (!confirm('¿Rechazar la reprogramación?')) return;
+    let solicitudes = JSON.parse(localStorage.getItem('solicitudesReprogramacion')) || [];
+    const idx = solicitudes.findIndex(s => s.citaId === citaId && s.estado === 'Esperando');
+    if (idx === -1) return;
+    // Liberar la nueva fecha/hora (no se hace nada, solo se elimina solicitud)
+    solicitudes.splice(idx, 1);
+    localStorage.setItem('solicitudesReprogramacion', JSON.stringify(solicitudes));
+    cargarCitas();
+    alert('Reprogramación rechazada');
+  }
+
+  // Cargar al inicio
+  cargarCitas();
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - UTP Psicología</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body class="login-page">
+<div class="login-container">
+  <div class="login-card">
+    <div class="header">
+      <h1>UTP Psicología</h1>
+      <p>Sistema de Automatización de Procesos Administrativos<br>Dirección Nacional de Orientación Psicológica</p>
+    </div>
+
+    <div class="form-group">
+      <label>Tipo de Usuario</label>
+      <select id="tipoUsuario">
+        <option value="">Seleccione</option>
+        <option value="estudiante">Estudiante</option>
+        <option value="psicologo">Psicólogo</option>
+        <option value="director">Director(a)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Usuario (cédula)</label>
+      <input type="text" id="usuario" placeholder="Ingrese su usuario">
+    </div>
+
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="password" placeholder="Ingrese su contraseña">
+    </div>
+
+    <button class="btn" onclick="iniciarSesion()">Iniciar Sesión</button>
+    <p id="mensajeError" class="error"></p>
+
+    <div class="link-registro">
+      ¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a>
+    </div>
+
+    <div class="demo-users">
+      <h3>Usuarios de prueba</h3>
+      <p><strong>Estudiante:</strong> 8-123-456 / 1234</p>
+      <p><strong>Psicólogo:</strong> psicologo / admin123</p>
+      <p><strong>Director:</strong> director / director123</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Inicializar datos de prueba si no existen
+  if (!localStorage.getItem('estudiantes')) {
+    localStorage.setItem('estudiantes', JSON.stringify([
+      { id: 1, nombre: 'Juan Pérez', cedula: '8-123-456', correo: 'juan@utp.ac.pa', facultad: 'Ingeniería Civil', password: '1234' },
+      { id: 2, nombre: 'María López', cedula: '8-789-012', correo: 'maria@utp.ac.pa', facultad: 'Ingeniería en Sistemas', password: '1234' }
+    ]));
+  }
+  if (!localStorage.getItem('psicologos')) {
+    localStorage.setItem('psicologos', JSON.stringify([
+      { id: 1, nombre: 'Dra. Ana Rodríguez', usuario: 'psicologo', password: 'admin123' }
+    ]));
+  }
+  // Director fijo
+  const DIRECTOR = { usuario: 'director', password: 'director123' };
+
+  function iniciarSesion() {
+    const tipo = document.getElementById('tipoUsuario').value;
+    const usuario = document.getElementById('usuario').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const mensaje = document.getElementById('mensajeError');
+    mensaje.innerHTML = '';
+
+    if (!tipo || !usuario || !password) {
+      mensaje.innerHTML = 'Complete todos los campos';
+      return;
+    }
+
+    if (tipo === 'estudiante') {
+      const estudiantes = JSON.parse(localStorage.getItem('estudiantes')) || [];
+      const encontrado = estudiantes.find(e => (e.cedula === usuario || e.correo === usuario) && e.password === password);
+      if (encontrado) {
+        sessionStorage.setItem('usuarioTipo', 'estudiante');
+        sessionStorage.setItem('logueado', 'true');
+        sessionStorage.setItem('estudianteCedula', encontrado.cedula);
+        sessionStorage.setItem('estudianteNombre', encontrado.nombre);
+        sessionStorage.setItem('estudianteCorreo', encontrado.correo);
+        sessionStorage.setItem('estudianteFacultad', encontrado.facultad);
+        window.location.href = 'estudiante-dashboard.html';
+      } else {
+        mensaje.innerHTML = 'Credenciales incorrectas';
+      }
+    } else if (tipo === 'psicologo') {
+      const psicologos = JSON.parse(localStorage.getItem('psicologos')) || [];
+      const encontrado = psicologos.find(p => p.usuario === usuario && p.password === password);
+      if (encontrado) {
+        sessionStorage.setItem('usuarioTipo', 'psicologo');
+        sessionStorage.setItem('logueado', 'true');
+        sessionStorage.setItem('psicologoNombre', encontrado.nombre);
+        sessionStorage.setItem('psicologoUsuario', encontrado.usuario);
+        window.location.href = 'psicologo-dashboard.html';
+      } else {
+        mensaje.innerHTML = 'Credenciales incorrectas';
+      }
+    } else if (tipo === 'director') {
+      if (usuario === DIRECTOR.usuario && password === DIRECTOR.password) {
+        sessionStorage.setItem('usuarioTipo', 'director');
+        sessionStorage.setItem('logueado', 'true');
+        window.location.href = 'director-dashboard.html';
+      } else {
+        mensaje.innerHTML = 'Credenciales incorrectas';
+      }
+    } else {
+      mensaje.innerHTML = 'Seleccione un tipo de usuario válido';
+    }
+  }
+</script>
+</body>
+</html>

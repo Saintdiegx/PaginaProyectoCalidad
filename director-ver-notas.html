@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ver Notas - Director</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<div class="sidebar director">
+  <h2><a href="login.html" class="logo-link">UTP Psicología</a></h2>
+  <p>Director</p>
+  <div class="menu director">
+    <button onclick="location.href='director-dashboard.html'">Dashboard</button>
+    <button onclick="location.href='director-gestion-psicologos.html'">Gestión Psicólogos</button>
+    <button onclick="location.href='director-ver-notas.html'">Ver Notas</button>
+    <button onclick="location.href='login.html'">Cerrar Sesión</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 class="director">Anotaciones Clínicas de Psicólogos</h1>
+    <p>Revisa todas las notas privadas registradas</p>
+  </div>
+
+  <div class="card">
+    <h2 class="director">Todas las Notas</h2>
+    <table>
+      <thead><tr><th>Paciente</th><th>Psicólogo</th><th>Fecha</th><th>Nota</th></tr></thead>
+      <tbody id="tablaNotasGlobal"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  if (sessionStorage.getItem('usuarioTipo') !== 'director') window.location.href = 'login.html';
+
+  function cargarNotasGlobal() {
+    const notas = JSON.parse(localStorage.getItem('notasPrivadas')) || [];
+    const tbody = document.getElementById('tablaNotasGlobal');
+    tbody.innerHTML = '';
+    if (notas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4">No hay notas registradas</td></tr>';
+    } else {
+      notas.sort((a,b) => b.id - a.id).forEach(n => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${n.pacienteNombre}</td>
+            <td>${n.psicologo}</td>
+            <td>${n.fecha}</td>
+            <td style="text-align:left; max-width:300px;">${n.nota}</td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  cargarNotasGlobal();
+</script>
+</body>
+</html>

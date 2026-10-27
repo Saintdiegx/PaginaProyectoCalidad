@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notas Privadas - Psicólogo</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<div class="sidebar psicologo">
+  <h2><a href="login.html" class="logo-link">UTP Psicología</a></h2>
+  <p>Psicólogo</p>
+  <div class="menu psicologo">
+    <button onclick="location.href='psicologo-dashboard.html'">Dashboard</button>
+    <button onclick="location.href='psicologo-citas.html'">Gestión de Citas</button>
+    <button onclick="location.href='psicologo-notas.html'">Notas Privadas</button>
+    <button onclick="location.href='login.html'">Cerrar Sesión</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 class="psicologo">Notas Privadas</h1>
+    <p>Registra observaciones clínicas de tus pacientes</p>
+  </div>
+
+  <div class="card">
+    <h2 class="psicologo">Nueva Nota</h2>
+    <div class="grid">
+      <div>
+        <label>Paciente</label>
+        <select id="notaPaciente">
+          <option value="">Seleccione</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:15px;">
+      <label>Observación</label>
+      <textarea id="notaTexto" placeholder="Escribe aquí..."></textarea>
+    </div>
+    <button class="btn secundario" onclick="guardarNota()">Guardar Nota</button>
+    <p id="mensajeNota" style="margin-top:10px;"></p>
+  </div>
+
+  <div class="card">
+    <h2 class="psicologo">Historial de Notas</h2>
+    <table>
+      <thead><tr><th>Paciente</th><th>Fecha</th><th>Nota</th><th>Acción</th></tr></thead>
+      <tbody id="tablaNotas"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const psicologo = sessionStorage.getItem('psicologoNombre');
+  if (!psicologo) window.location.href = 'login.html';
+
+  function cargarPacientes() {
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const misPacientes = citas.filter(c => c.psicologo === psicologo && c.estado === 'Atendida');
+    const unicos = [...new Map(misPacientes.map(c => [c.estudianteCedula, c.estudianteNombre])).entries()];
+    const select = document.getElementById('notaPaciente');
+    select.innerHTML = '<option value="">Seleccione</option>';
+    unicos.forEach(([cedula, nombre]) => {
+      select.innerHTML += `<option value="${cedula}">${nombre} (${cedula})</option>`;
+    });
+  }
+
+  function guardarNota() {
+    const cedula = document.getElementById('notaPaciente').value;
+    const texto = document.getElementById('notaTexto').value.trim();
+    if (!cedula || !texto) {
+      document.getElementById('mensajeNota').innerHTML = 'Seleccione un paciente y escriba una nota';
+      return;
+    }
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const paciente = citas.find(c => c.estudianteCedula === cedula && c.psicologo === psicologo);
+    const nombre = paciente ? paciente.estudianteNombre : cedula;
+
+    let notas = JSON.parse(localStorage.getItem('notasPrivadas')) || [];
+    notas.push({
+      id: Date.now(),
+      pacienteCedula: cedula,
+      pacienteNombre: nombre,
+      psicologo: psicologo,
+      nota: texto,
+      fecha: new Date().toLocaleDateString()
+    });
+    localStorage.setItem('notasPrivadas', JSON.stringify(notas));
+    document.getElementById('notaTexto').value = '';
+    document.getElementById('mensajeNota').innerHTML = 'Nota guardada correctamente';
+    cargarNotas();
+  }
+
+  function cargarNotas() {
+    const notas = JSON.parse(localStorage.getItem('notasPrivadas')) || [];
+    const misNotas = notas.filter(n => n.psicologo === psicologo);
+    const tbody = document.getElementById('tablaNotas');
+    tbody.innerHTML = '';
+    if (misNotas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4">No hay notas</td></tr>';
+    } else {
+      misNotas.sort((a,b) => b.id - a.id).forEach(n => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${n.pacienteNombre}</td>
+            <td>${n.fecha}</td>
+            <td style="text-align:left; max-width:200px;">${n.nota}</td>
+            <td><button class="btn danger" onclick="eliminarNota(${n.id})">Eliminar</button></td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  function eliminarNota(id) {
+    if (!confirm('¿Eliminar esta nota?')) return;
+    let notas = JSON.parse(localStorage.getItem('notasPrivadas')) || [];
+    notas = notas.filter(n => n.id !== id);
+    localStorage.setItem('notasPrivadas', JSON.stringify(notas));
+    cargarNotas();
+  }
+
+  cargarPacientes();
+  cargarNotas();
+</script>
+</body>
+</html>

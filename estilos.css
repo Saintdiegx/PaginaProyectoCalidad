@@ -1,0 +1,338 @@
+/* ============================================
+   ESTILOS GENERALES Y VARIABLES
+   ============================================ */
+:root {
+  --color-primary: #0d47a1;
+  --color-primary-light: #1976d2;
+  --color-primary-dark: #0a2e6b;
+  --color-secondary: #6f3df4;
+  --color-secondary-light: #8d52fe;
+  --color-secondary-dark: #5c2fd1;
+  --color-student: #671667;
+  --color-student-light: #8b108b;
+  --color-bg: #eef3f8;
+  --color-white: #ffffff;
+  --color-shadow: rgba(0,0,0,0.08);
+  --radius: 18px;
+  --transition: 0.3s ease;
+  --font: 'Segoe UI', Arial, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--font);
+}
+
+body {
+  background: var(--color-bg);
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ============================================
+   SIDEBAR (común para todos los roles)
+   ============================================ */
+.sidebar {
+  width: 260px;
+  padding: 25px 20px;
+  color: white;
+  position: fixed;
+  height: 100%;
+  transition: background var(--transition);
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  z-index: 100;
+}
+
+.sidebar h2 {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.sidebar p {
+  font-size: 14px;
+  margin-bottom: 30px;
+  opacity: 0.8;
+}
+
+.logo-link {
+  color: white;
+  text-decoration: none;
+  display: inline-block;
+  transition: transform var(--transition);
+}
+.logo-link:hover {
+  transform: scale(1.08);
+}
+
+.menu button {
+  width: 100%;
+  margin-bottom: 15px;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+  background: rgba(255,255,255,0.15);
+}
+.menu button:hover {
+  background: rgba(255,255,255,0.30);
+  transform: translateX(5px);
+}
+
+/* Colores específicos por rol (se asignan en el HTML mediante clase) */
+.sidebar.estudiante { background: var(--color-student); }
+.sidebar.psicologo  { background: var(--color-primary); }
+.sidebar.director   { background: var(--color-secondary); }
+
+.menu.estudiante button { background: var(--color-student-light); }
+.menu.psicologo button  { background: var(--color-primary-light); }
+.menu.director button   { background: var(--color-secondary-light); }
+
+.menu.estudiante button:hover { background: var(--color-student); }
+.menu.psicologo button:hover  { background: var(--color-primary); }
+.menu.director button:hover   { background: var(--color-secondary); }
+
+/* ============================================
+   CONTENIDO PRINCIPAL
+   ============================================ */
+.main {
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  padding: 30px;
+}
+
+.topbar {
+  background: var(--color-white);
+  padding: 20px;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 10px var(--color-shadow);
+  margin-bottom: 25px;
+}
+
+.topbar h1 {
+  font-size: 26px;
+}
+.topbar h1.estudiante { color: var(--color-student); }
+.topbar h1.psicologo  { color: var(--color-primary); }
+.topbar h1.director   { color: var(--color-secondary); }
+
+.card {
+  background: var(--color-white);
+  border-radius: var(--radius);
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 12px var(--color-shadow);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.card:hover {
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+}
+
+.card h2 {
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+.card h2.estudiante { color: var(--color-student); }
+.card h2.psicologo  { color: var(--color-primary); }
+.card h2.director   { color: var(--color-secondary); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+/* ============================================
+   FORMULARIOS
+   ============================================ */
+label {
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 6px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  background: #fafafa;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 0 3px rgba(25,118,210,0.15);
+}
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.btn {
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+  margin-top: 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-weight: bold;
+  color: white;
+  background: var(--color-primary-light);
+}
+.btn:hover {
+  background: var(--color-primary-dark);
+  transform: scale(1.02);
+}
+.btn.secundario {
+  background: var(--color-secondary-light);
+}
+.btn.secundario:hover {
+  background: var(--color-secondary-dark);
+}
+.btn.estudiante {
+  background: var(--color-student-light);
+}
+.btn.estudiante:hover {
+  background: var(--color-student);
+}
+.btn.danger {
+  background: #c62828;
+}
+.btn.danger:hover {
+  background: #b71c1c;
+}
+
+/* ============================================
+   TABLAS
+   ============================================ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 14px;
+}
+table th {
+  background: var(--color-primary-light);
+  color: white;
+  padding: 12px;
+}
+table th, table td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: center;
+}
+table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+table tr:hover {
+  background: #f1f1f1;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  display: inline-block;
+}
+.badge.activo { background: #c8e6c9; color: #2e7d32; }
+.badge.cancelada { background: #ffcdd2; color: #c62828; }
+.badge.pendiente { background: #fff9c4; color: #f57f17; }
+.badge.atendida { background: #b3d9ff; color: #0d47a1; }
+.badge.confirmada { background: #b2dfdb; color: #00695c; }
+.badge.reprogramada { background: #d1c4e9; color: #4527a0; }
+
+/* ============================================
+   INFO BOX / RESUMEN
+   ============================================ */
+.info-box {
+  padding: 18px;
+  border-left: 6px solid var(--color-primary-light);
+  border-radius: 10px;
+  line-height: 1.7;
+  background: #e3f2fd;
+}
+.info-box.estudiante { border-left-color: var(--color-student); background: #fce4ec; }
+.info-box.psicologo  { border-left-color: var(--color-primary); background: #e3f2fd; }
+.info-box.director   { border-left-color: var(--color-secondary); background: #ede7f6; }
+
+/* ============================================
+   DASHBOARD TARJETAS DE ESTADÍSTICAS
+   ============================================ */
+.stat-number {
+  font-size: 42px;
+  font-weight: 300;
+  margin-top: 5px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 900px) {
+  .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+  }
+  body {
+    flex-direction: column;
+  }
+  .main {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ============================================
+   LOGIN CON IMAGEN DE FONDO Y EFECTO HOVER
+   ============================================ */
+body.login-page {
+  background-image: url('img/login-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed; /* Fondo fijo, no se mueve */
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  margin: 0;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 450px;
+  perspective: 1000px; /* Da sensación 3D */
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.85); /* Semitransparente para ver el fondo */
+  backdrop-filter: blur(2px); /* Desenfoque sutil del fondo (opcional) */
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transition: transform 0.4s ease, box-shadow 0.4s ease, background 0.4s ease;
+  transform: translateY(0);
+  will-change: transform;
+}
+
+.login-card:hover {
+  transform: translateY(-10px) scale(1.02); /* Se mueve hacia arriba y crece */
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* Asegura que el contenido del card esté por encima del fondo */
+.login-card * {
+  position: relative;
+  z-index: 2;
+}

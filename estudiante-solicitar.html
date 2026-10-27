@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitar Cita - UTP Psicología</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<div class="sidebar estudiante">
+  <h2><a href="login.html" class="logo-link">UTP Psicología</a></h2>
+  <p>Estudiante</p>
+  <div class="menu estudiante">
+    <button onclick="location.href='estudiante-dashboard.html'">Mis Citas</button>
+    <button onclick="location.href='estudiante-solicitar.html'">Solicitar Cita</button>
+    <button onclick="location.href='login.html'">Cerrar Sesión</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 class="estudiante">Solicitar Cita</h1>
+    <p>Selecciona un psicólogo, fecha y hora disponible</p>
+  </div>
+
+  <div class="card">
+    <h2 class="estudiante">Nueva Cita</h2>
+    <div class="grid">
+      <div>
+        <label>Psicólogo</label>
+        <select id="selPsicologo" onchange="cargarFechas()">
+          <option value="">Seleccione</option>
+        </select>
+      </div>
+      <div>
+        <label>Fecha</label>
+        <select id="selFecha" onchange="cargarHoras()">
+          <option value="">Seleccione psicólogo primero</option>
+        </select>
+      </div>
+      <div>
+        <label>Hora</label>
+        <select id="selHora">
+          <option value="">Seleccione fecha primero</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn estudiante" onclick="solicitarCita()">Solicitar Cita</button>
+    <p id="mensajeSolicitud" style="margin-top:15px; font-weight:bold;"></p>
+  </div>
+</div>
+
+<script>
+  // Cargar psicólogos
+  function cargarPsicologos() {
+    const select = document.getElementById('selPsicologo');
+    const psicologos = JSON.parse(localStorage.getItem('psicologos')) || [];
+    select.innerHTML = '<option value="">Seleccione</option>';
+    psicologos.forEach(p => {
+      select.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+    });
+  }
+
+  function cargarFechas() {
+    const psicologo = document.getElementById('selPsicologo').value;
+    const fechaSel = document.getElementById('selFecha');
+    const horaSel = document.getElementById('selHora');
+    fechaSel.innerHTML = '<option value="">Seleccione</option>';
+    horaSel.innerHTML = '<option value="">Seleccione fecha primero</option>';
+
+    if (!psicologo) return;
+
+    const disponibilidades = JSON.parse(localStorage.getItem('disponibilidades')) || [];
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+
+    // Obtener fechas únicas para este psicólogo que tengan disponibilidad
+    const fechas = [...new Set(disponibilidades.filter(d => d.psicologo === psicologo).map(d => d.dia))];
+    // Filtrar fechas que no estén completamente ocupadas
+    fechas.forEach(f => {
+      // Verificar si todas las horas de ese día están ocupadas
+      const horasDisponibles = disponibilidades.filter(d => d.psicologo === psicologo && d.dia === f);
+      const horasOcupadas = citas.filter(c => c.psicologo === psicologo && c.fecha === f && c.estado !== 'Cancelada').map(c => c.hora);
+      const libres = horasDisponibles.some(h => !horasOcupadas.includes(h.horario));
+      if (libres) {
+        fechaSel.innerHTML += `<option value="${f}">${f}</option>`;
+      }
+    });
+    if (fechas.length === 0) {
+      fechaSel.innerHTML = '<option value="">No hay fechas disponibles</option>';
+    }
+  }
+
+  function cargarHoras() {
+    const psicologo = document.getElementById('selPsicologo').value;
+    const fecha = document.getElementById('selFecha').value;
+    const horaSel = document.getElementById('selHora');
+    horaSel.innerHTML = '<option value="">Seleccione</option>';
+
+    if (!psicologo || !fecha) return;
+
+    const disponibilidades = JSON.parse(localStorage.getItem('disponibilidades')) || [];
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const horasDisponibles = disponibilidades.filter(d => d.psicologo === psicologo && d.dia === fecha);
+    const horasOcupadas = citas.filter(c => c.psicologo === psicologo && c.fecha === fecha && c.estado !== 'Cancelada').map(c => c.hora);
+
+    horasDisponibles.forEach(h => {
+      if (!horasOcupadas.includes(h.horario)) {
+        horaSel.innerHTML += `<option value="${h.horario}">${h.horario}</option>`;
+      }
+    });
+    if (horaSel.options.length === 1) {
+      horaSel.innerHTML = '<option value="">No hay horas disponibles</option>';
+    }
+  }
+
+  function solicitarCita() {
+    const psicologo = document.getElementById('selPsicologo').value;
+    const fecha = document.getElementById('selFecha').value;
+    const hora = document.getElementById('selHora').value;
+    const mensaje = document.getElementById('mensajeSolicitud');
+    mensaje.innerHTML = '';
+
+    if (!psicologo || !fecha || !hora) {
+      mensaje.innerHTML = 'Complete todos los campos';
+      return;
+    }
+
+    const cedula = sessionStorage.getItem('estudianteCedula');
+    const nombre = sessionStorage.getItem('estudianteNombre');
+    const correo = sessionStorage.getItem('estudianteCorreo');
+    const facultad = sessionStorage.getItem('estudianteFacultad');
+
+    // Verificar que la hora no esté ocupada (doble check)
+    const citas = JSON.parse(localStorage.getItem('citas')) || [];
+    const ocupada = citas.some(c => c.psicologo === psicologo && c.fecha === fecha && c.hora === hora && c.estado !== 'Cancelada');
+    if (ocupada) {
+      mensaje.innerHTML = 'Esa hora ya fue ocupada. Elige otra.';
+      cargarHoras(); // refrescar
+      return;
+    }
+
+    const nuevaCita = {
+      id: Date.now(),
+      estudianteCedula: cedula,
+      estudianteNombre: nombre,
+      correo: correo,
+      facultad: facultad,
+      psicologo: psicologo,
+      fecha: fecha,
+      hora: hora,
+      estado: 'Pendiente'
+    };
+    citas.push(nuevaCita);
+    localStorage.setItem('citas', JSON.stringify(citas));
+
+    mensaje.innerHTML = 'Cita solicitada correctamente. Espera la confirmación del psicólogo.';
+    mensaje.style.color = '#2e7d32';
+    // Limpiar selección
+    document.getElementById('selPsicologo').value = '';
+    document.getElementById('selFecha').innerHTML = '<option value="">Seleccione psicólogo primero</option>';
+    document.getElementById('selHora').innerHTML = '<option value="">Seleccione fecha primero</option>';
+    cargarPsicologos();
+  }
+
+  // Inicializar
+  cargarPsicologos();
+</script>
+</body>
+</html>

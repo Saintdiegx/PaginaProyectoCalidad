@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Psicólogos - Director</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<div class="sidebar director">
+  <h2><a href="login.html" class="logo-link">UTP Psicología</a></h2>
+  <p>Director</p>
+  <div class="menu director">
+    <button onclick="location.href='director-dashboard.html'">Dashboard</button>
+    <button onclick="location.href='director-gestion-psicologos.html'">Gestión Psicólogos</button>
+    <button onclick="location.href='director-ver-notas.html'">Ver Notas</button>
+    <button onclick="location.href='login.html'">Cerrar Sesión</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 class="director">Gestión de Psicólogos</h1>
+    <p>Registrar y administrar psicólogos</p>
+  </div>
+
+  <div class="card">
+    <h2 class="director">Registrar Nuevo Psicólogo</h2>
+    <div class="grid">
+      <div><label>Nombre</label><input type="text" id="regPsicoNombre"></div>
+      <div><label>Usuario</label><input type="text" id="regPsicoUsuario"></div>
+      <div><label>Contraseña</label><input type="password" id="regPsicoPassword"></div>
+    </div>
+    <button class="btn secundario" onclick="registrarPsicologo()">Registrar</button>
+    <p id="msgRegPsico" style="margin-top:10px;"></p>
+  </div>
+
+  <div class="card">
+    <h2 class="director">Psicólogos Registrados</h2>
+    <table>
+      <thead><tr><th>Nombre</th><th>Usuario</th><th>Acción</th></tr></thead>
+      <tbody id="tablaPsicologos"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  if (sessionStorage.getItem('usuarioTipo') !== 'director') window.location.href = 'login.html';
+
+  function cargarPsicologos() {
+    const psicologos = JSON.parse(localStorage.getItem('psicologos')) || [];
+    const tbody = document.getElementById('tablaPsicologos');
+    tbody.innerHTML = '';
+    psicologos.forEach(p => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${p.nombre}</td>
+          <td>${p.usuario}</td>
+          <td><button class="btn danger" onclick="eliminarPsicologo(${p.id})">Eliminar</button></td>
+        </tr>
+      `;
+    });
+  }
+
+  function registrarPsicologo() {
+    const nombre = document.getElementById('regPsicoNombre').value.trim();
+    const usuario = document.getElementById('regPsicoUsuario').value.trim();
+    const password = document.getElementById('regPsicoPassword').value.trim();
+    if (!nombre || !usuario || !password) {
+      document.getElementById('msgRegPsico').innerHTML = 'Complete todos los campos';
+      return;
+    }
+    let psicologos = JSON.parse(localStorage.getItem('psicologos')) || [];
+    if (psicologos.some(p => p.usuario === usuario)) {
+      document.getElementById('msgRegPsico').innerHTML = 'Ese usuario ya existe';
+      return;
+    }
+    psicologos.push({ id: Date.now(), nombre, usuario, password });
+    localStorage.setItem('psicologos', JSON.stringify(psicologos));
+    document.getElementById('msgRegPsico').innerHTML = 'Psicólogo registrado exitosamente';
+    document.getElementById('regPsicoNombre').value = '';
+    document.getElementById('regPsicoUsuario').value = '';
+    document.getElementById('regPsicoPassword').value = '';
+    cargarPsicologos();
+  }
+
+  function eliminarPsicologo(id) {
+    if (!confirm('¿Eliminar este psicólogo?')) return;
+    let psicologos = JSON.parse(localStorage.getItem('psicologos')) || [];
+    psicologos = psicologos.filter(p => p.id !== id);
+    localStorage.setItem('psicologos', JSON.stringify(psicologos));
+    cargarPsicologos();
+  }
+
+  cargarPsicologos();
+</script>
+</body>
+</html>
